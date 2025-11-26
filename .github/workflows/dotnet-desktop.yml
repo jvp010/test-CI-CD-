@@ -1,0 +1,71 @@
+name: .NET CI
+
+on:
+  push:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:                     
+          fetch-depth: 0          
+          persist-credentials: true 
+
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore 
+
+      - name: Build solution
+        run: |
+          error=false
+          dotnet build  --no-restore --configuration Release || error=true
+
+      # - name: Run tests
+      #   run: dotnet test MobyParkAPI.Tests/MobyParkAPI.Tests.csproj --no-build --configuration Release --logger trx
+
+      - name: Generate new Git tag
+        if: success()
+        id: tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git fetch --tags
+          latest_tag=$(git describe --tags --abbrev=0 2>/dev/null)
+
+          if [ -z "$latest_tag" ]; then
+              new_tag="v2.0"
+          else
+              major=$(echo $latest_tag | cut -d. -f1 | sed 's/v//')
+              minor=$(echo $latest_tag | cut -d. -f2)
+              new_tag="v$major.$((minor+1))"
+
+              while git rev-parse "$new_tag" >/dev/null 2>&1; do
+                  minor=$((minor+1))
+                  new_tag="v$major.$minor"
+              done
+          fi
+
+          git tag "$new_tag"
+          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }} "$new_tag"
+          echo "Created and pushed tag $new_tag"
+          echo "NEW_TAG=$new_tag" >> $GITHUB_ENV
+
+
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: MobyParkAPI$new_tag
+          
+          if-no-files-found: error
