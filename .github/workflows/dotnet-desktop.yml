@@ -57,7 +57,7 @@ jobs:
           fi
 
           git tag "$new_tag"
-          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }} "$new_tag"
+          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/jvp010/test-CI-CD "$new_tag"
 
           echo "NEW_TAG=$new_tag" >> $GITHUB_ENV
           echo "Created and pushed tag $new_tag"
