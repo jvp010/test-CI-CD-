@@ -37,9 +37,17 @@ jobs:
       - name: Generate new Git tag - step 1
         id: tag
         run: |
+          echo "==> Fetching all tags from remote..."
           git fetch --tags
+
+          echo "==> Listing local tags:"
           git tag -l
+
+          echo "==> Listing remote tags:"
           git ls-remote --tags origin
+
+          echo "Step 1 complete: fetched tags successfully."
+
 
 
       - name: Upload build artifacts
