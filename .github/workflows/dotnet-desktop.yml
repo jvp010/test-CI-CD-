@@ -58,8 +58,8 @@ jobs:
 
           git tag "$new_tag"
 
-          # Use the authenticated remote created by checkout
-          git push origin "$new_tag"
+          # # Use the authenticated remote created by checkout
+          # git push origin "$new_tag"
 
           echo "NEW_TAG=$new_tag" >> $GITHUB_ENV
           echo "Created and pushed tag $new_tag"
