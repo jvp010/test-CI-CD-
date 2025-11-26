@@ -34,19 +34,36 @@ jobs:
       # - name: Run tests
       #   run: dotnet test MobyParkAPI.Tests/MobyParkAPI.Tests.csproj --no-build --configuration Release --logger trx
 
-      - name: Generate new Git tag - step 1
+      - name: Generate new Git tag - step 2
         id: tag
         run: |
-          echo "==> Fetching all tags from remote..."
+          echo "==> Fetching tags again to ensure latest state..."
           git fetch --tags
 
-          echo "==> Listing local tags:"
-          git tag -l
+          echo "==> Finding the latest tag..."
+          latest_tag=$(git describe --tags --abbrev=0 2>/dev/null)
 
-          echo "==> Listing remote tags:"
-          git ls-remote --tags origin
+          if [ -z "$latest_tag" ]; then
+              new_tag="v2.0"
+              echo "No existing tags found. Starting with $new_tag"
+          else
+              echo "Latest tag found: $latest_tag"
+              major=$(echo $latest_tag | cut -d. -f1 | sed 's/v//')
+              minor=$(echo $latest_tag | cut -d. -f2)
+              new_tag="v$major.$((minor+1))"
 
-          echo "Step 1 complete: fetched tags successfully."
+              # Ensure we don’t reuse a tag
+              while git rev-parse "$new_tag" >/dev/null 2>&1; do
+                  minor=$((minor+1))
+                  new_tag="v$major.$minor"
+              done
+              echo "Calculated new tag: $new_tag"
+          fi
+
+          # Export new tag for next steps
+          echo "NEW_TAG=$new_tag" >> $GITHUB_ENV
+          echo "Step 2 complete: NEW_TAG set to $new_tag"
+
 
 
 
