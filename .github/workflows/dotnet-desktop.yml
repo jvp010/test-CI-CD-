@@ -37,11 +37,15 @@ jobs:
       - name: Generate new Git tag - step 2
         id: tag
         run: |
-          echo "==> Fetching tags again to ensure latest state..."
+          echo "==> Switching to main branch..."
+          git checkout main
+          git pull origin main
+
+          echo "==> Fetching all tags..."
           git fetch --tags
 
           echo "==> Finding the latest tag..."
-          latest_tag=$(git describe --tags --abbrev=0 2>/dev/null)
+          latest_tag=$(git describe --tags --abbrev=0 2>/dev/null || true)
 
           if [ -z "$latest_tag" ]; then
               new_tag="v2.0"
@@ -52,7 +56,6 @@ jobs:
               minor=$(echo $latest_tag | cut -d. -f2)
               new_tag="v$major.$((minor+1))"
 
-              # Ensure we don’t reuse a tag
               while git rev-parse "$new_tag" >/dev/null 2>&1; do
                   minor=$((minor+1))
                   new_tag="v$major.$minor"
@@ -60,7 +63,6 @@ jobs:
               echo "Calculated new tag: $new_tag"
           fi
 
-          # Export new tag for next steps
           echo "NEW_TAG=$new_tag" >> $GITHUB_ENV
           echo "Step 2 complete: NEW_TAG set to $new_tag"
 
