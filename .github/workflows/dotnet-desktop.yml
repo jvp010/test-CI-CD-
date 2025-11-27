@@ -36,6 +36,18 @@ jobs:
       - name: Generate new Git tag
         id: tag
         run: |
+          current_commit=$(git rev-parse HEAD)
+          echo "Current commit: $current_commit"
+
+          # Check if this commit already has a tag
+          existing_tag=$(git tag --points-at $current_commit)
+
+          if [ -n "$existing_tag" ]; then
+              echo "Commit $current_commit already has tag(s): $existing_tag"
+              echo "Skipping tag creation."
+              exit 0
+          fi
+
           echo "==> Fetching all tags..."
           git fetch --tags
 
@@ -51,7 +63,7 @@ jobs:
               minor=$(echo $latest_tag | cut -d. -f2)
               new_tag="v$major.$((minor+1))"
 
-              # Ensure we don’t reuse a tag
+              # Ensure new tag doesn't already exist
               while git rev-parse "$new_tag" >/dev/null 2>&1; do
                   minor=$((minor+1))
                   new_tag="v$major.$minor"
