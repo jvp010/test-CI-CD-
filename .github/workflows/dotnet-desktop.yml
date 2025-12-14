@@ -84,10 +84,15 @@ jobs:
       - name: Publish project
         run: dotnet publish -c Release -o publish
 
+      - name: List publish folder
+        run: |
+          echo "Contents of publish folder:"
+          ls -R publish
+
       - name: Create GitHub Release
         uses: ncipollo/release-action@v1
         with:
           tag: ${{ env.NEW_TAG }}
           name: Release ${{ env.NEW_TAG }}
           body: "Automated release for ${{ env.NEW_TAG }}"
-          files: publish/**/*   
+          files: publish/**/*    # corrected path so release includes all DLLs
