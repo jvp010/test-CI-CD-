@@ -1,16 +1,16 @@
-name: .NET CI
+name: .NET CI/CD Release
 
 on:
   push:
     branches:
-      - main   # triggers on commits or merges to main
+      - main
   pull_request:
 
 permissions:
-  contents: write   # Required so the workflow can push tags
+  contents: write
 
 jobs:
-  build:
+  build-and-release:
     runs-on: ubuntu-latest
 
     steps:
@@ -35,17 +35,11 @@ jobs:
       - name: Build solution
         run: dotnet build --no-restore --configuration Release
 
-      # Optional tests
-      # - name: Run tests
-      #   run: dotnet test MobyParkAPI.Tests/MobyParkAPI.Tests.csproj --no-build --configuration Release --logger trx
-
       # 5. Generate new Git tag
       - name: Generate new Git tag
         id: tag
         run: |
-          echo "==> Fetching all tags..."
           git fetch --tags
-
           current_commit=$(git rev-parse HEAD)
           existing_tag=$(git tag --points-at $current_commit)
 
@@ -54,7 +48,7 @@ jobs:
           else
               latest_tag=$(git describe --tags --abbrev=0 2>/dev/null || true)
               if [ -z "$latest_tag" ]; then
-                  NEW_TAG="v2.0"
+                  NEW_TAG="v1.0"
               else
                   major=$(echo $latest_tag | cut -d. -f1 | sed 's/v//')
                   minor=$(echo $latest_tag | cut -d. -f2)
@@ -72,33 +66,26 @@ jobs:
 
           echo "NEW_TAG=$NEW_TAG" >> $GITHUB_ENV
 
-      # 6. Publish project to temporary folder
+      # 6. Publish project
       - name: Publish project
         run: dotnet publish -c Release -o publish
 
-      # 7. List publish folder contents (optional, for debug)
-      - name: List publish folder
-        run: |
-          echo "Contents of publish folder:"
-          ls -R publish
-
-      # 8. Install zip utility (if missing)
+      # 7. Zip publish folder
       - name: Install zip
         run: sudo apt-get update && sudo apt-get install -y zip
 
-      # 9. Zip publish folder
       - name: Zip publish folder
         run: zip -r publish.zip publish
 
-      # 10. Verify zip exists (optional)
+      # 8. Verify zip exists
       - name: Verify zip exists
         run: ls -l
 
-      # 11. Create GitHub Release with zip attached
+      # 9. Create GitHub Release with zipped publish folder
       - name: Create GitHub Release
         uses: ncipollo/release-action@v1
         with:
           tag: ${{ env.NEW_TAG }}
           name: Release ${{ env.NEW_TAG }}
           body: "Automated release for ${{ env.NEW_TAG }}"
-          files: ./publish.zip   # attach the zipped publish folder
+          artifacts: publish.zip   # Correct input to attach files
