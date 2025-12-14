@@ -39,47 +39,31 @@ jobs:
           echo "==> Fetching all tags..."
           git fetch --tags
 
-          # Get current commit
           current_commit=$(git rev-parse HEAD)
-          echo "Current commit: $current_commit"
-
-          # Check if commit already has a tag
           existing_tag=$(git tag --points-at $current_commit)
 
           if [ -n "$existing_tag" ]; then
-              echo "Commit $current_commit already has tag(s): $existing_tag"
               NEW_TAG=$existing_tag
           else
-              echo "==> Finding the latest tag..."
               latest_tag=$(git describe --tags --abbrev=0 2>/dev/null || true)
-
               if [ -z "$latest_tag" ]; then
                   NEW_TAG="v2.0"
-                  echo "No existing tags found. Starting with $NEW_TAG"
               else
-                  echo "Latest tag found: $latest_tag"
                   major=$(echo $latest_tag | cut -d. -f1 | sed 's/v//')
                   minor=$(echo $latest_tag | cut -d. -f2)
                   NEW_TAG="v$major.$((minor+1))"
-
-                  # Avoid overwriting existing tag
                   while git rev-parse "$NEW_TAG" >/dev/null 2>&1; do
                       minor=$((minor+1))
                       NEW_TAG="v$major.$minor"
                   done
-                  echo "Calculated new tag: $NEW_TAG"
               fi
-
-              echo "==> Creating local tag $NEW_TAG..."
               git config user.name "github-actions[bot]"
               git config user.email "github-actions[bot]@users.noreply.github.com"
               git tag "$NEW_TAG"
               git push origin "$NEW_TAG"
           fi
 
-          # Always set NEW_TAG in environment
           echo "NEW_TAG=$NEW_TAG" >> $GITHUB_ENV
-          echo "Step complete: NEW_TAG set to $NEW_TAG"
 
       - name: Publish project
         run: dotnet publish -c Release -o publish
@@ -89,10 +73,13 @@ jobs:
           echo "Contents of publish folder:"
           ls -R publish
 
+      - name: Zip publish folder
+        run: zip -r publish.zip publish
+
       - name: Create GitHub Release
         uses: ncipollo/release-action@v1
         with:
           tag: ${{ env.NEW_TAG }}
           name: Release ${{ env.NEW_TAG }}
           body: "Automated release for ${{ env.NEW_TAG }}"
-          files: publish/**/*    # corrected path so release includes all DLLs
+          files: publish.zip    # attach the zipped folder so it contains 'publish/'
