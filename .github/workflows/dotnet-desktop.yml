@@ -83,6 +83,7 @@ jobs:
 
       # 9. Create GitHub Release with zipped publish folder
       - name: Create GitHub Release
+        if: ${{ success() }}   # <--- Only run if all previous steps succeeded
         uses: ncipollo/release-action@v1
         with:
           tag: ${{ env.NEW_TAG }}
