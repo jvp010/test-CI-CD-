@@ -2,6 +2,8 @@ name: .NET CI
 
 on:
   push:
+    branches:
+      - main   # triggers on commits or merges to main
   pull_request:
 
 permissions:
@@ -12,20 +14,24 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1. Checkout code
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
           persist-credentials: true
 
+      # 2. Setup .NET
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '9.0.x'
 
+      # 3. Restore dependencies
       - name: Restore dependencies
         run: dotnet restore
 
+      # 4. Build solution
       - name: Build solution
         run: dotnet build --no-restore --configuration Release
 
@@ -33,6 +39,7 @@ jobs:
       # - name: Run tests
       #   run: dotnet test MobyParkAPI.Tests/MobyParkAPI.Tests.csproj --no-build --configuration Release --logger trx
 
+      # 5. Generate new Git tag
       - name: Generate new Git tag
         id: tag
         run: |
@@ -65,21 +72,33 @@ jobs:
 
           echo "NEW_TAG=$NEW_TAG" >> $GITHUB_ENV
 
+      # 6. Publish project to temporary folder
       - name: Publish project
         run: dotnet publish -c Release -o publish
 
+      # 7. List publish folder contents (optional, for debug)
       - name: List publish folder
         run: |
           echo "Contents of publish folder:"
           ls -R publish
 
+      # 8. Install zip utility (if missing)
+      - name: Install zip
+        run: sudo apt-get update && sudo apt-get install -y zip
+
+      # 9. Zip publish folder
       - name: Zip publish folder
         run: zip -r publish.zip publish
 
+      # 10. Verify zip exists (optional)
+      - name: Verify zip exists
+        run: ls -l
+
+      # 11. Create GitHub Release with zip attached
       - name: Create GitHub Release
         uses: ncipollo/release-action@v1
         with:
           tag: ${{ env.NEW_TAG }}
           name: Release ${{ env.NEW_TAG }}
           body: "Automated release for ${{ env.NEW_TAG }}"
-          files: publish.zip    # attach the zipped folder so it contains 'publish/'
+          files: ./publish.zip   # attach the zipped publish folder
