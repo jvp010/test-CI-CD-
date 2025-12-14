@@ -81,10 +81,13 @@ jobs:
           echo "NEW_TAG=$NEW_TAG" >> $GITHUB_ENV
           echo "Step complete: NEW_TAG set to $NEW_TAG"
 
+      - name: Publish project
+        run: dotnet publish -c Release -o publish
+
       - name: Create GitHub Release
         uses: ncipollo/release-action@v1
         with:
           tag: ${{ env.NEW_TAG }}
           name: Release ${{ env.NEW_TAG }}
           body: "Automated release for ${{ env.NEW_TAG }}"
-          files: ./bin/Release/**/*  
+          files: publish/**/*   
