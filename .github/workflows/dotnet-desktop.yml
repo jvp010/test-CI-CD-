@@ -81,9 +81,10 @@ jobs:
           echo "NEW_TAG=$NEW_TAG" >> $GITHUB_ENV
           echo "Step complete: NEW_TAG set to $NEW_TAG"
 
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
+      - name: Create GitHub Release
+        uses: ncipollo/release-action@v1
         with:
-          name: MobyParkAPI-${{ env.NEW_TAG }}
-          path: ./bin/Release/**/*
-          if-no-files-found: error
+          tag: ${{ env.NEW_TAG }}
+          name: Release ${{ env.NEW_TAG }}
+          body: "Automated release for ${{ env.NEW_TAG }}"
+          files: ./bin/Release/**/*  
